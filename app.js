@@ -11,6 +11,10 @@ const els = {
   sizeValue: $("#wm-size-value"),
   color: $("#wm-color"),
   colorHex: $("#wm-color-hex"),
+  opacity: $("#wm-opacity"),
+  opacityValue: $("#wm-opacity-value"),
+  position: $("#wm-position"),
+  style: $("#wm-style"),
   grid: $("#grid"),
   empty: $("#empty-state"),
   count: $("#count"),
@@ -35,7 +39,44 @@ const sizeLabel = () => {
   return `${palabra} (${pct})`;
 };
 
-const getSettings = () => ({ text: els.text.value, size: Number(els.size.value), color: els.color.value });
+const getSettings = () => ({
+  text: els.text.value,
+  size: Number(els.size.value),
+  color: els.color.value,
+  opacity: els.opacity ? Number(els.opacity.value) : 50,
+  position: els.position ? els.position.value : "bottom-right",
+  style: els.style ? els.style.value : "sombra",
+});
+
+// ---- Persistencia local ----
+const SAVE_KEY = "marca-agua-settings-v1";
+function saveSettings() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      text: els.text.value,
+      size: els.size.value,
+      color: els.color.value,
+      opacity: els.opacity?.value,
+      position: els.position?.value,
+      style: els.style?.value,
+      zipName: els.zipName.value,
+    }));
+  } catch { /* almacenamiento no disponible */ }
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (typeof s.text === "string") els.text.value = s.text;
+    if (s.size) els.size.value = s.size;
+    if (s.color) els.color.value = s.color;
+    if (s.opacity && els.opacity) els.opacity.value = s.opacity;
+    if (s.position && els.position) els.position.value = s.position;
+    if (s.style && els.style) els.style.value = s.style;
+    if (typeof s.zipName === "string" && s.zipName) els.zipName.value = s.zipName;
+  } catch { /* ignora datos corruptos */ }
+}
 
 function setStatus(msg, isError = false) {
   els.status.textContent = msg || "";
@@ -72,7 +113,7 @@ function loadImage(file) {
   });
 }
 
-// Dibuja la imagen y el texto (50% opacidad, abajo a la derecha)
+// Dibuja la imagen y el texto (opacidad y posición configurables)
 function renderToCanvas(img, settings, maxDim) {
   const scale = maxDim ? Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight)) : 1;
   const w = Math.max(1, Math.round(img.naturalWidth * scale));
@@ -91,14 +132,46 @@ function renderToCanvas(img, settings, maxDim) {
     ctx.font = `700 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
     ctx.textBaseline = "alphabetic";
     const tw = ctx.measureText(text).width;
-    const x = Math.max(pad, w - pad - tw);
-    const y = h - pad;
-    ctx.globalAlpha = 0.5; // requisito: 50% de opacidad
+    const pos = settings.position || "bottom-right";
+    let x = w - pad - tw;
+    let y = h - pad;
+    if (pos.includes("left")) x = pad;
+    else if (pos.includes("center")) x = Math.max(pad, (w - tw) / 2);
+    else if (pos === "middle-right") x = Math.max(pad, w - pad - tw);
+    // bottom-right / top-right usan el valor inicial (derecha)
+    if (pos.startsWith("top")) y = pad + fontSize;
+    else if (pos === "center" || pos.startsWith("middle")) y = h / 2 + fontSize / 2;
+    else y = h - pad; // bottom-*
+    x = Math.max(pad, Math.min(x, w - pad - tw));
+
+    const alpha = Math.min(1, Math.max(0.1, (settings.opacity ?? 50) / 100));
+    const style = settings.style || "sombra";
+    ctx.globalAlpha = alpha;
     ctx.fillStyle = settings.color;
-    ctx.shadowColor = "rgba(0,0,0,0.7)";
-    ctx.shadowBlur = Math.round(fontSize / 5);
-    ctx.shadowOffsetY = Math.max(1, Math.round(fontSize / 18));
-    ctx.fillText(text, x, y);
+
+    if (style === "fondo") {
+      const bgPad = Math.round(fontSize * 0.25);
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.55;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(x - bgPad, y - fontSize - bgPad * 0.5, tw + bgPad * 2, fontSize + bgPad);
+      ctx.restore();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = settings.color;
+      ctx.fillText(text, x, y);
+    } else if (style === "contorno") {
+      ctx.lineWidth = Math.max(2, Math.round(fontSize / 12));
+      ctx.strokeStyle = "rgba(0,0,0,0.85)";
+      ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
+    } else if (style === "ninguno") {
+      ctx.fillText(text, x, y);
+    } else { // sombra
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = Math.round(fontSize / 5);
+      ctx.shadowOffsetY = Math.max(1, Math.round(fontSize / 18));
+      ctx.fillText(text, x, y);
+    }
     ctx.globalAlpha = 1;
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
@@ -129,9 +202,29 @@ function renderGrid() {
     <button class="thumb" data-id="${item.id}" title="Ver en grande: ${escapeHTML(item.file.name)}">
       <img src="${item.thumbUrl || ""}" alt="${escapeHTML(item.file.name)}">
       <span class="thumb-name">${escapeHTML(item.file.name)}</span>
+      <span class="thumb-download" data-download="${item.id}" role="button" aria-label="Descargar ${escapeHTML(item.file.name)}" title="Descargar esta foto">⬇</span>
       <span class="thumb-remove" data-remove="${item.id}" role="button" aria-label="Quitar ${escapeHTML(item.file.name)}">✕</span>
     </button>`).join("");
   updateSummary();
+}
+
+async function downloadOne(item) {
+  try {
+    setStatus(`Procesando ${item.file.name}…`);
+    const { base, ext, mime } = outputInfo(item.file);
+    const img = await loadImage(item.file);
+    const canvas = renderToCanvas(img, getSettings(), null);
+    const blob = await canvasToBlob(canvas, mime, 0.92);
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), { href: url, download: `${base}.${ext}` });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    setStatus(`Descargada: ${base}.${ext}`);
+  } catch (err) {
+    setStatus("Error al descargar: " + err.message, true);
+  }
 }
 
 async function addFiles(fileList) {
@@ -182,16 +275,29 @@ let debounceTimer = null;
 function scheduleRefresh() {
   els.sizeValue.textContent = sizeLabel();
   els.colorHex.textContent = els.color.value;
+  if (els.opacityValue) els.opacityValue.textContent = `${els.opacity.value}%`;
+  saveSettings();
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => state.items.forEach(renderThumb), 200);
 }
 els.size.addEventListener("input", scheduleRefresh);
 els.color.addEventListener("input", scheduleRefresh);
 els.text.addEventListener("input", scheduleRefresh);
+if (els.opacity) els.opacity.addEventListener("input", scheduleRefresh);
+if (els.position) els.position.addEventListener("change", scheduleRefresh);
+if (els.style) els.style.addEventListener("change", scheduleRefresh);
+if (els.zipName) els.zipName.addEventListener("input", saveSettings);
 document.querySelectorAll(".preset").forEach(btn =>
   btn.addEventListener("click", () => { els.color.value = btn.dataset.color; scheduleRefresh(); }));
 
 els.grid.addEventListener("click", async e => {
+  const dlBtn = e.target.closest("[data-download]");
+  if (dlBtn) {
+    e.stopPropagation();
+    const item = state.items.find(i => i.id === Number(dlBtn.dataset.download));
+    if (item) await downloadOne(item);
+    return;
+  }
   const removeBtn = e.target.closest("[data-remove]");
   if (removeBtn) { e.stopPropagation(); removeItem(Number(removeBtn.dataset.remove)); return; }
   const thumb = e.target.closest(".thumb[data-id]");
@@ -269,5 +375,8 @@ els.btnDownload.addEventListener("click", async () => {
 });
 
 // Valores iniciales
+loadSettings();
 els.sizeValue.textContent = sizeLabel();
+if (els.opacityValue && els.opacity) els.opacityValue.textContent = `${els.opacity.value}%`;
+if (els.colorHex) els.colorHex.textContent = els.color.value;
 updateSummary();

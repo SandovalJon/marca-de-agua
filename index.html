@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marca de Agua · Texto en tus fotos (opacidad 50%)</title>
-<meta name="description" content="Añade una marca de agua de texto a varias fotos a la vez: abajo a la derecha, 50% de opacidad. Todo ocurre en tu navegador, nada se sube a Internet.">
+<title>Marca de Agua · Texto en tus fotos</title>
+<meta name="description" content="Añade una marca de agua de texto a varias fotos a la vez, con opacidad y posición a tu gusto. Todo ocurre en tu navegador, nada se sube a Internet.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -12,7 +12,7 @@
 <header>
   <div class="wrap">
     <h1>Marca de <span class="grad">Agua</span></h1>
-    <p>Texto en la <strong>esquina inferior derecha</strong> con <strong>50% de opacidad</strong>. Por lote, en tu navegador, sin subir nada a Internet.</p>
+    <p>Texto donde quieras, con la <strong>opacidad que elijas</strong>. Por lote, en tu navegador, sin subir nada a Internet.</p>
   </div>
 </header>
 
@@ -49,7 +49,31 @@
       <code id="wm-color-hex">#ffffff</code>
     </div>
 
-    <p class="note">Opacidad: 50% fijo · Posición: abajo a la derecha · Formato original: JPG, PNG, WEBP (GIF/BMP se convierten a PNG)</p>
+    <label for="wm-opacity">Opacidad <span class="value" id="wm-opacity-value">50%</span></label>
+    <input type="range" id="wm-opacity" min="10" max="100" step="5" value="50">
+
+    <label for="wm-position">Posición</label>
+    <select id="wm-position">
+      <option value="bottom-right" selected>Abajo a la derecha</option>
+      <option value="bottom-left">Abajo a la izquierda</option>
+      <option value="top-right">Arriba a la derecha</option>
+      <option value="top-left">Arriba a la izquierda</option>
+      <option value="bottom-center">Abajo centrado</option>
+      <option value="top-center">Arriba centrado</option>
+      <option value="center">Centro</option>
+      <option value="middle-left">Centro izquierda</option>
+      <option value="middle-right">Centro derecha</option>
+    </select>
+
+    <label for="wm-style">Contorno</label>
+    <select id="wm-style">
+      <option value="sombra" selected>Sombra suave</option>
+      <option value="contorno">Contorno negro</option>
+      <option value="fondo">Fondo semitransparente</option>
+      <option value="ninguno">Sin contorno</option>
+    </select>
+
+    <p class="note">Formato original: JPG, PNG, WEBP (GIF/BMP se convierten a PNG)</p>
 
     <h2>3 · Descargar</h2>
     <label for="zip-name">Nombre del ZIP</label>

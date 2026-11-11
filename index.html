@@ -101,14 +101,21 @@
 </main>
 
 <footer>
-  <div class="wrap"><p>Procesamiento 100% local en tu navegador · Ninguna imagen se envía a servidores · Marca de Agua <span id="app-version">v1.1.0</span></p></div>
+  <div class="wrap"><p>Procesamiento 100% local en tu navegador · Ninguna imagen se envía a servidores · Marca de Agua <span id="app-version">v1.2.0</span></p></div>
 </footer>
 
 <!-- Lightbox -->
 <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="Vista previa ampliada">
   <button id="lightbox-close" class="lightbox-close" aria-label="Cerrar">✕</button>
+  <button id="lightbox-prev" class="lightbox-nav prev" aria-label="Anterior">‹</button>
   <img id="lightbox-img" alt="Foto con marca de agua">
+  <button id="lightbox-next" class="lightbox-nav next" aria-label="Siguiente">›</button>
   <div id="lightbox-name" class="lightbox-name"></div>
+  <div class="lightbox-tools">
+    <span id="lightbox-counter" class="lightbox-counter"></span>
+    <button id="lightbox-orig" class="btn ghost small">Mantén para ver original</button>
+    <button id="lightbox-dl" class="btn primary small">Descargar esta</button>
+  </div>
 </div>
 
 <script src="vendor/jszip.min.js"></script>

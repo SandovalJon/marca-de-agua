@@ -1,8 +1,8 @@
 // Marca de Agua · lógica 100% en el navegador
-const APP_VERSION = "v1.1.0";
+const APP_VERSION = "v1.2.0";
 const $ = (sel) => document.querySelector(sel);
 
-const state = { items: [], seq: 0 };
+const state = { items: [], seq: 0, lbIndex: -1, lbWmUrl: null, lbOrigUrl: null };
 
 const els = {
   fileInput: $("#file-input"),
@@ -27,6 +27,11 @@ const els = {
   lightboxImg: $("#lightbox-img"),
   lightboxName: $("#lightbox-name"),
   lightboxClose: $("#lightbox-close"),
+  lightboxPrev: $("#lightbox-prev"),
+  lightboxNext: $("#lightbox-next"),
+  lightboxOrig: $("#lightbox-orig"),
+  lightboxDl: $("#lightbox-dl"),
+  lightboxCounter: $("#lightbox-counter"),
 };
 
 const escapeHTML = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
@@ -231,8 +236,13 @@ async function downloadOne(item) {
 async function addFiles(fileList) {
   const files = [...fileList].filter(f => f.type.startsWith("image/"));
   if (!files.length) { setStatus("Solo se aceptan archivos de imagen.", true); return; }
+  const seen = new Set(state.items.map(i => `${i.file.name}|${i.file.size}|${i.file.lastModified}`));
   const nuevos = [];
+  let duplicados = 0;
   for (const file of files) {
+    const key = `${file.name}|${file.size}|${file.lastModified}`;
+    if (seen.has(key)) { duplicados++; continue; }
+    seen.add(key);
     try {
       const img = await loadImage(file); // valida que se puede decodificar
       const item = { id: ++state.seq, file, width: img.naturalWidth, height: img.naturalHeight, thumbUrl: null };
@@ -244,18 +254,24 @@ async function addFiles(fileList) {
   }
   renderGrid();
   for (const item of nuevos) await renderThumb(item);
-  setStatus(nuevos.length ? `${nuevos.length} foto(s) añadida(s).` : "");
+  const msg = nuevos.length ? `${nuevos.length} foto(s) añadida(s).` : "";
+  setStatus(duplicados ? `${msg} ${duplicados} duplicada(s) ignorada(s).` : msg);
 }
 
 function removeItem(id) {
   state.items = state.items.filter(i => i.id !== id);
   renderGrid();
+  if (!els.lightbox.hidden) {
+    if (!state.items.length) closeLightbox();
+    else showLightboxItem(Math.min(state.lbIndex, state.items.length - 1));
+  }
 }
 
 function clearAll() {
   state.items = [];
   els.grid.innerHTML = "";
   setStatus("");
+  if (!els.lightbox.hidden) closeLightbox();
   updateSummary();
 }
 
@@ -291,6 +307,38 @@ if (els.zipName) els.zipName.addEventListener("input", saveSettings);
 document.querySelectorAll(".preset").forEach(btn =>
   btn.addEventListener("click", () => { els.color.value = btn.dataset.color; scheduleRefresh(); }));
 
+function closeLightbox() {
+  els.lightbox.hidden = true;
+  state.lbIndex = -1;
+  if (state.lbOrigUrl) { URL.revokeObjectURL(state.lbOrigUrl); state.lbOrigUrl = null; }
+  state.lbWmUrl = null;
+}
+
+async function showLightboxItem(idx) {
+  if (!state.items.length) return;
+  const n = state.items.length;
+  state.lbIndex = ((idx % n) + n) % n;
+  const item = state.items[state.lbIndex];
+  try {
+    if (state.lbOrigUrl) URL.revokeObjectURL(state.lbOrigUrl);
+    state.lbOrigUrl = URL.createObjectURL(item.file);
+    const img = await loadImage(item.file);
+    const canvas = renderToCanvas(img, getSettings(), 1600);
+    state.lbWmUrl = canvas.toDataURL("image/jpeg", 0.85);
+    els.lightboxImg.src = state.lbWmUrl;
+    els.lightboxName.textContent = `${item.file.name} · ${item.width}×${item.height}px`;
+    if (els.lightboxCounter) els.lightboxCounter.textContent = `${state.lbIndex + 1}/${n}`;
+    els.lightbox.hidden = false;
+  } catch (err) {
+    setStatus(err.message, true);
+  }
+}
+
+function openLightboxById(id) {
+  const idx = state.items.findIndex(i => i.id === id);
+  if (idx > -1) showLightboxItem(idx);
+}
+
 els.grid.addEventListener("click", async e => {
   const dlBtn = e.target.closest("[data-download]");
   if (dlBtn) {
@@ -303,22 +351,31 @@ els.grid.addEventListener("click", async e => {
   if (removeBtn) { e.stopPropagation(); removeItem(Number(removeBtn.dataset.remove)); return; }
   const thumb = e.target.closest(".thumb[data-id]");
   if (!thumb) return;
-  const item = state.items.find(i => i.id === Number(thumb.dataset.id));
-  if (!item) return;
-  try {
-    const img = await loadImage(item.file);
-    const canvas = renderToCanvas(img, getSettings(), 1600);
-    els.lightboxImg.src = canvas.toDataURL("image/jpeg", 0.85);
-    els.lightboxName.textContent = `${item.file.name} · ${item.width}×${item.height}px`;
-    els.lightbox.hidden = false;
-  } catch (err) {
-    setStatus(err.message, true);
-  }
+  openLightboxById(Number(thumb.dataset.id));
 });
 
-els.lightboxClose.addEventListener("click", () => { els.lightbox.hidden = true; });
-els.lightbox.addEventListener("click", e => { if (e.target === els.lightbox) els.lightbox.hidden = true; });
-document.addEventListener("keydown", e => { if (e.key === "Escape") els.lightbox.hidden = true; });
+els.lightboxClose.addEventListener("click", closeLightbox);
+els.lightbox.addEventListener("click", e => { if (e.target === els.lightbox) closeLightbox(); });
+if (els.lightboxPrev) els.lightboxPrev.addEventListener("click", e => { e.stopPropagation(); showLightboxItem(state.lbIndex - 1); });
+if (els.lightboxNext) els.lightboxNext.addEventListener("click", e => { e.stopPropagation(); showLightboxItem(state.lbIndex + 1); });
+if (els.lightboxDl) els.lightboxDl.addEventListener("click", async e => {
+  e.stopPropagation();
+  const item = state.items[state.lbIndex];
+  if (item) await downloadOne(item);
+});
+// Mantén pulsado para comparar original vs marca
+if (els.lightboxOrig) {
+  const showOrig = e => { e.preventDefault(); if (state.lbOrigUrl) els.lightboxImg.src = state.lbOrigUrl; };
+  const showWm = () => { if (state.lbWmUrl) els.lightboxImg.src = state.lbWmUrl; };
+  els.lightboxOrig.addEventListener("pointerdown", showOrig);
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => els.lightboxOrig.addEventListener(ev, showWm));
+}
+document.addEventListener("keydown", e => {
+  if (els.lightbox.hidden) return;
+  if (e.key === "Escape") closeLightbox();
+  else if (e.key === "ArrowRight") showLightboxItem(state.lbIndex + 1);
+  else if (e.key === "ArrowLeft") showLightboxItem(state.lbIndex - 1);
+});
 
 els.btnClear.addEventListener("click", clearAll);
 

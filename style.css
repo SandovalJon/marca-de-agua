@@ -223,6 +223,19 @@ code#wm-color-hex {
 }
 .lightbox-close:hover { border-color: var(--accent); }
 .lightbox-name { margin-top: 14px; color: var(--muted); font-size: .85rem; }
+.lightbox-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(26,29,39,.85); color: var(--text);
+  font-size: 1.6rem; line-height: 1; cursor: pointer;
+}
+.lightbox-nav.prev { left: 18px; }
+.lightbox-nav.next { right: 18px; }
+.lightbox-nav:hover { border-color: var(--accent); }
+.lightbox-tools { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+.lightbox-counter { color: var(--muted); font-size: .85rem; min-width: 52px; text-align: center; }
+.btn.small { padding: 9px 14px; font-size: .85rem; width: auto; }
 
 footer { text-align: center; margin-top: 26px; }
 footer p { color: var(--muted); font-size: .76rem; }

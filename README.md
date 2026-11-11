@@ -1,10 +1,12 @@
-# Marca de Agua · v1.3.0
+# Marca de Agua · v1.5.0
 
-Añade un texto como marca de agua a varias fotos a la vez, con opacidad y posición a tu gusto.
+Añade texto o logo como marca de agua a varias fotos a la vez, con opacidad, posición y mosaico a tu gusto.
 
 - 100% local: las fotos nunca salen de tu navegador.
-- Texto, tamaño, color, opacidad, posición y contorno personalizables.
-- Descarga todo en un **ZIP** o foto por foto, conservando el formato original (JPG, PNG, WEBP).
+- Texto multilínea, logo PNG/JPG, modo mosaico, tamaño, color, opacidad, posición, contorno y margen.
+- Calidad JPG/WEBP y tamaño máximo de salida configurables.
+- Carga y vistas en paralelo con barra de progreso y botón Cancelar.
+- Descarga todo en un **ZIP** (DEFLATE) o foto por foto, conservando el formato original (JPG, PNG, WEBP).
 
 ## Uso
 

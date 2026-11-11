@@ -29,8 +29,24 @@
     <input type="file" id="file-input" accept="image/*" multiple hidden>
 
     <h2>2 · Marca de agua</h2>
-    <label for="wm-text">Texto</label>
-    <input type="text" id="wm-text" value="© Mi nombre" maxlength="80" placeholder="© Mi nombre · https://mi-web.com">
+    <label for="wm-mode">Tipo de marca</label>
+    <select id="wm-mode">
+      <option value="texto" selected>Solo texto</option>
+      <option value="logo">Solo logo</option>
+      <option value="texto-logo">Texto + logo</option>
+      <option value="mosaico">Mosaico de texto</option>
+    </select>
+    <label for="wm-text">Texto (varias líneas con Enter)</label>
+    <textarea id="wm-text" rows="2" maxlength="160" placeholder="© Mi nombre · https://mi-web.com">© Mi nombre</textarea>
+
+    <label for="wm-logo">Logo (PNG/JPG, se guarda solo en esta sesión)</label>
+    <input type="file" id="wm-logo" accept="image/png,image/jpeg,image/webp">
+    <div class="logo-row">
+      <img id="wm-logo-preview" alt="" hidden>
+      <button id="btn-logo-clear" class="btn ghost small" type="button" hidden>Quitar logo</button>
+    </div>
+    <label for="wm-logo-scale">Tamaño logo <span class="value" id="wm-logo-scale-value">15%</span></label>
+    <input type="range" id="wm-logo-scale" min="5" max="50" step="1" value="15">
 
     <label for="wm-size">Tamaño <span class="value" id="wm-size-value">Medio</span></label>
     <input type="range" id="wm-size" min="1" max="10" step="1" value="4">
@@ -84,6 +100,9 @@
       <option value="1280">1280 px (más liviano)</option>
     </select>
 
+    <label for="wm-margin">Margen al borde <span class="value" id="wm-margin-value">1×</span></label>
+    <input type="range" id="wm-margin" min="0" max="3" step="0.5" value="1">
+
     <p class="note">Formato original: JPG, PNG, WEBP (GIF/BMP se convierten a PNG) · ZIP con compresión</p>
 
     <h2>3 · Descargar</h2>
@@ -92,8 +111,10 @@
     <div class="summary"><span id="count">0</span> fotos listas</div>
     <div class="actions">
       <button id="btn-download" class="btn primary block" disabled>Descargar ZIP</button>
+      <button id="btn-cancel" class="btn ghost block" hidden>Cancelar</button>
       <button id="btn-clear" class="btn ghost block" disabled>Vaciar todo</button>
     </div>
+    <div id="progress" class="progress" hidden><div id="progress-bar"></div></div>
     <p id="status" class="status" role="status"></p>
   </aside>
 
@@ -102,6 +123,7 @@
     <div class="gallery-head">
       <h2>Vista previa</h2>
       <span class="muted">Clic en una foto para verla en grande</span>
+      <button id="btn-apply" class="btn ghost small" title="Regenerar vistas previas con los ajustes actuales">Aplicar</button>
     </div>
     <div id="empty-state" class="empty">
       <div class="empty-icon">🖼️</div>
@@ -112,7 +134,7 @@
 </main>
 
 <footer>
-  <div class="wrap"><p>Procesamiento 100% local en tu navegador · Ninguna imagen se envía a servidores · Marca de Agua <span id="app-version">v1.3.0</span> · <button id="btn-update" class="link-btn" title="Borra la caché y recarga la última versión">Forzar actualización</button></p></div>
+  <div class="wrap"><p>Procesamiento 100% local en tu navegador · Ninguna imagen se envía a servidores · Marca de Agua <span id="app-version">v1.5.0</span> · <button id="btn-update" class="link-btn" title="Borra la caché y recarga la última versión">Forzar actualización</button></p></div>
 </footer>
 
 <!-- Lightbox -->

@@ -1,4 +1,5 @@
 // Marca de Agua · lógica 100% en el navegador
+const APP_VERSION = "v1.1.0";
 const $ = (sel) => document.querySelector(sel);
 
 const state = { items: [], seq: 0 };
@@ -379,4 +380,6 @@ loadSettings();
 els.sizeValue.textContent = sizeLabel();
 if (els.opacityValue && els.opacity) els.opacityValue.textContent = `${els.opacity.value}%`;
 if (els.colorHex) els.colorHex.textContent = els.color.value;
+const vEl = document.querySelector("#app-version");
+if (vEl) vEl.textContent = APP_VERSION;
 updateSummary();

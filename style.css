@@ -239,3 +239,9 @@ code#wm-color-hex {
 
 footer { text-align: center; margin-top: 26px; }
 footer p { color: var(--muted); font-size: .76rem; }
+.link-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent); font-size: .76rem; text-decoration: underline;
+  padding: 0 2px;
+}
+.link-btn:hover { color: #fff; }

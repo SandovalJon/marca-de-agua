@@ -1,5 +1,5 @@
 // Marca de Agua · lógica 100% en el navegador
-const APP_VERSION = "v1.2.0";
+const APP_VERSION = "v1.2.1";
 const $ = (sel) => document.querySelector(sel);
 
 const state = { items: [], seq: 0, lbIndex: -1, lbWmUrl: null, lbOrigUrl: null };
@@ -32,6 +32,7 @@ const els = {
   lightboxOrig: $("#lightbox-orig"),
   lightboxDl: $("#lightbox-dl"),
   lightboxCounter: $("#lightbox-counter"),
+  btnUpdate: $("#btn-update"),
 };
 
 const escapeHTML = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
@@ -378,6 +379,33 @@ document.addEventListener("keydown", e => {
 });
 
 els.btnClear.addEventListener("click", clearAll);
+
+if (els.btnUpdate) els.btnUpdate.addEventListener("click", async () => {
+  const btn = els.btnUpdate;
+  const original = btn.textContent;
+  try {
+    btn.textContent = "Actualizando…";
+    btn.disabled = true;
+    // Limpia Service Workers y cachés (GitHub Pages + navegador)
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations().catch(() => []);
+      await Promise.all((regs || []).map(r => r.unregister().catch(() => false)));
+    }
+    if ("caches" in window) {
+      const keys = await caches.keys().catch(() => []);
+      await Promise.all(keys.map(k => caches.delete(k).catch(() => false)));
+    }
+    // Recarga sin caché: rompe query + reload forzado
+    const url = new URL(location.href);
+    url.searchParams.set("v", Date.now().toString());
+    location.href = url.toString();
+    setTimeout(() => location.reload(), 500);
+  } catch {
+    location.reload();
+  } finally {
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
+  }
+});
 
 els.btnDownload.addEventListener("click", async () => {
   if (!state.items.length || typeof JSZip === "undefined") {

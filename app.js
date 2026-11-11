@@ -1,5 +1,5 @@
 // Marca de Agua · lógica 100% en el navegador
-const APP_VERSION = "v1.2.1";
+const APP_VERSION = "v1.3.0";
 const $ = (sel) => document.querySelector(sel);
 
 const state = { items: [], seq: 0, lbIndex: -1, lbWmUrl: null, lbOrigUrl: null };
@@ -33,6 +33,9 @@ const els = {
   lightboxDl: $("#lightbox-dl"),
   lightboxCounter: $("#lightbox-counter"),
   btnUpdate: $("#btn-update"),
+  quality: $("#wm-quality"),
+  qualityValue: $("#wm-quality-value"),
+  maxside: $("#wm-maxside"),
 };
 
 const escapeHTML = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
@@ -53,6 +56,8 @@ const getSettings = () => ({
   opacity: els.opacity ? Number(els.opacity.value) : 50,
   position: els.position ? els.position.value : "bottom-right",
   style: els.style ? els.style.value : "sombra",
+  quality: els.quality ? Number(els.quality.value) : 92,
+  maxside: els.maxside ? Number(els.maxside.value) : 0,
 });
 
 // ---- Persistencia local ----
@@ -66,6 +71,8 @@ function saveSettings() {
       opacity: els.opacity?.value,
       position: els.position?.value,
       style: els.style?.value,
+      quality: els.quality?.value,
+      maxside: els.maxside?.value,
       zipName: els.zipName.value,
     }));
   } catch { /* almacenamiento no disponible */ }
@@ -81,6 +88,8 @@ function loadSettings() {
     if (s.opacity && els.opacity) els.opacity.value = s.opacity;
     if (s.position && els.position) els.position.value = s.position;
     if (s.style && els.style) els.style.value = s.style;
+    if (s.quality && els.quality) els.quality.value = s.quality;
+    if (s.maxside != null && els.maxside) els.maxside.value = String(s.maxside);
     if (typeof s.zipName === "string" && s.zipName) els.zipName.value = s.zipName;
   } catch { /* ignora datos corruptos */ }
 }
@@ -219,9 +228,12 @@ async function downloadOne(item) {
   try {
     setStatus(`Procesando ${item.file.name}…`);
     const { base, ext, mime } = outputInfo(item.file);
+    const s = getSettings();
+    const maxDim = s.maxside > 0 ? s.maxside : null;
+    const q = Math.min(1, Math.max(0.6, (s.quality || 92) / 100));
     const img = await loadImage(item.file);
-    const canvas = renderToCanvas(img, getSettings(), null);
-    const blob = await canvasToBlob(canvas, mime, 0.92);
+    const canvas = renderToCanvas(img, s, maxDim);
+    const blob = await canvasToBlob(canvas, mime, q);
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement("a"), { href: url, download: `${base}.${ext}` });
     document.body.appendChild(a);
@@ -294,9 +306,14 @@ function scheduleRefresh() {
   els.sizeValue.textContent = sizeLabel();
   els.colorHex.textContent = els.color.value;
   if (els.opacityValue) els.opacityValue.textContent = `${els.opacity.value}%`;
+  if (els.qualityValue && els.quality) els.qualityValue.textContent = `${els.quality.value}%`;
   saveSettings();
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => state.items.forEach(renderThumb), 200);
+}
+function scheduleSaveOnly() {
+  if (els.qualityValue && els.quality) els.qualityValue.textContent = `${els.quality.value}%`;
+  saveSettings();
 }
 els.size.addEventListener("input", scheduleRefresh);
 els.color.addEventListener("input", scheduleRefresh);
@@ -304,6 +321,8 @@ els.text.addEventListener("input", scheduleRefresh);
 if (els.opacity) els.opacity.addEventListener("input", scheduleRefresh);
 if (els.position) els.position.addEventListener("change", scheduleRefresh);
 if (els.style) els.style.addEventListener("change", scheduleRefresh);
+if (els.quality) els.quality.addEventListener("input", scheduleSaveOnly);
+if (els.maxside) els.maxside.addEventListener("change", saveSettings);
 if (els.zipName) els.zipName.addEventListener("input", saveSettings);
 document.querySelectorAll(".preset").forEach(btn =>
   btn.addEventListener("click", () => { els.color.value = btn.dataset.color; scheduleRefresh(); }));
@@ -434,14 +453,17 @@ els.btnDownload.addEventListener("click", async () => {
       els.btnDownload.textContent = `Procesando ${i + 1}/${state.items.length}…`;
       const { base, ext, mime } = outputInfo(item.file);
       const name = uniqueName(`${base}.${ext}`);
+      const s = getSettings();
+      const maxDim = s.maxside > 0 ? s.maxside : null;
+      const q = Math.min(1, Math.max(0.6, (s.quality || 92) / 100));
       const img = await loadImage(item.file);
-      const canvas = renderToCanvas(img, getSettings(), null); // tamaño original
-      const blob = await canvasToBlob(canvas, mime, 0.92);
+      const canvas = renderToCanvas(img, s, maxDim);
+      const blob = await canvasToBlob(canvas, mime, q);
       zip.file(name, blob);
     }
 
     els.btnDownload.textContent = "Comprimiendo…";
-    const blob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
     let zipName = (els.zipName.value || "fotos-con-marca-de-agua.zip").trim().replace(/[\\/:*?"<>|]/g, "_");
     if (!zipName.toLowerCase().endsWith(".zip")) zipName += ".zip";
 
@@ -464,6 +486,7 @@ els.btnDownload.addEventListener("click", async () => {
 loadSettings();
 els.sizeValue.textContent = sizeLabel();
 if (els.opacityValue && els.opacity) els.opacityValue.textContent = `${els.opacity.value}%`;
+if (els.qualityValue && els.quality) els.qualityValue.textContent = `${els.quality.value}%`;
 if (els.colorHex) els.colorHex.textContent = els.color.value;
 const vEl = document.querySelector("#app-version");
 if (vEl) vEl.textContent = APP_VERSION;

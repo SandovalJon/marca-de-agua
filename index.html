@@ -73,7 +73,18 @@
       <option value="ninguno">Sin contorno</option>
     </select>
 
-    <p class="note">Formato original: JPG, PNG, WEBP (GIF/BMP se convierten a PNG)</p>
+    <label for="wm-quality">Calidad JPG/WEBP <span class="value" id="wm-quality-value">92%</span></label>
+    <input type="range" id="wm-quality" min="60" max="100" step="1" value="92">
+
+    <label for="wm-maxside">Tamaño máximo salida</label>
+    <select id="wm-maxside">
+      <option value="0" selected>Original</option>
+      <option value="2048">2048 px (recomendado móvil)</option>
+      <option value="1600">1600 px</option>
+      <option value="1280">1280 px (más liviano)</option>
+    </select>
+
+    <p class="note">Formato original: JPG, PNG, WEBP (GIF/BMP se convierten a PNG) · ZIP con compresión</p>
 
     <h2>3 · Descargar</h2>
     <label for="zip-name">Nombre del ZIP</label>
@@ -101,7 +112,7 @@
 </main>
 
 <footer>
-  <div class="wrap"><p>Procesamiento 100% local en tu navegador · Ninguna imagen se envía a servidores · Marca de Agua <span id="app-version">v1.2.1</span> · <button id="btn-update" class="link-btn" title="Borra la caché y recarga la última versión">Forzar actualización</button></p></div>
+  <div class="wrap"><p>Procesamiento 100% local en tu navegador · Ninguna imagen se envía a servidores · Marca de Agua <span id="app-version">v1.3.0</span> · <button id="btn-update" class="link-btn" title="Borra la caché y recarga la última versión">Forzar actualización</button></p></div>
 </footer>
 
 <!-- Lightbox -->

@@ -1,4 +1,4 @@
-# Marca de Agua · v1.5.0
+# Marca de Agua · v1.5.1
 
 Añade texto o logo como marca de agua a varias fotos a la vez, con opacidad, posición y mosaico a tu gusto.
 

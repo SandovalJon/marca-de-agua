@@ -1,5 +1,5 @@
 // Marca de Agua · lógica 100% en el navegador
-const APP_VERSION = "v1.5.0";
+const APP_VERSION = "v1.5.1";
 const $ = (sel) => document.querySelector(sel);
 
 const state = { items: [], seq: 0, lbIndex: -1, lbWmUrl: null, lbOrigUrl: null, cancelRequested: false, refreshGen: 0, logoImg: null, logoName: "" };
@@ -341,12 +341,12 @@ async function refreshThumbs(items) {
 
 function renderGrid() {
   els.grid.innerHTML = state.items.map(item => `
-    <button class="thumb" data-id="${item.id}" title="Ver en grande: ${escapeHTML(item.file.name)}">
+    <div class="thumb" data-id="${item.id}" role="button" tabindex="0" title="Ver en grande: ${escapeHTML(item.file.name)}" aria-label="Ver en grande: ${escapeHTML(item.file.name)}">
       <img src="${item.thumbUrl || ""}" alt="${escapeHTML(item.file.name)}">
       <span class="thumb-name">${escapeHTML(item.file.name)}</span>
-      <span class="thumb-download" data-download="${item.id}" role="button" aria-label="Descargar ${escapeHTML(item.file.name)}" title="Descargar esta foto">⬇</span>
-      <span class="thumb-remove" data-remove="${item.id}" role="button" aria-label="Quitar ${escapeHTML(item.file.name)}">✕</span>
-    </button>`).join("");
+      <button type="button" class="thumb-download" data-download="${item.id}" aria-label="Descargar ${escapeHTML(item.file.name)}" title="Descargar esta foto">⬇</button>
+      <button type="button" class="thumb-remove" data-remove="${item.id}" aria-label="Quitar ${escapeHTML(item.file.name)}" title="Quitar foto">✕</button>
+    </div>`).join("");
   updateSummary();
 }
 
@@ -545,6 +545,15 @@ els.grid.addEventListener("click", async e => {
   if (removeBtn) { e.stopPropagation(); removeItem(Number(removeBtn.dataset.remove)); return; }
   const thumb = e.target.closest(".thumb[data-id]");
   if (!thumb) return;
+  openLightboxById(Number(thumb.dataset.id));
+});
+
+// Teclado: Enter/Espacio abre la vista grande (los botones internos ya son nativos).
+els.grid.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const thumb = e.target.closest(".thumb[data-id]");
+  if (!thumb || e.target.closest("button")) return;
+  e.preventDefault();
   openLightboxById(Number(thumb.dataset.id));
 });
 
